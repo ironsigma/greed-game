@@ -65,8 +65,11 @@ public final class GreedApp extends JFrame implements KeyListener {
 	public void keyReleased(final KeyEvent e) {
 		switch (e.getKeyCode()) {
 		case KeyEvent.VK_DOWN:
+			board.move(Direction.DOWN);
 			return;
+
 		case KeyEvent.VK_UP:
+			board.move(Direction.UP);
 			return;
 
 		case KeyEvent.VK_LEFT:
@@ -305,6 +308,22 @@ class Board extends JComponent {
 			LOG.info(toString());
 			break;
 
+		case UP:
+			cellRow = getCells(d);
+			if (cellRow.length == 0) {
+				LOG.debug("Not cells returned.");
+				return;
+			}
+			for (int i = 0; i < cellRow.length - 1; i++) {
+				LOG.debug("Cell at " + i + " is: " + cellRow[i] + ", marking empty.");
+				cellRow[i].setState(State.EMPTY);
+			}
+			cells[yLoc * width + xLoc].setState(State.EMPTY);
+			cellRow[cellRow.length - 1].setState(State.START);
+			yLoc -= cellRow.length;
+			LOG.info(toString());
+			break;
+
 		default:
 			LOG.debug("Invalid move");
 		}
@@ -380,7 +399,41 @@ class Board extends JComponent {
 				cellRow[index] = cells[i];
 				index++;
 			}
-			LOG.debug("Good right move");
+			LOG.debug("Good left move");
+			return cellRow;
+
+		case UP:
+			if (yLoc - 1 < 0) {
+				LOG.debug("bad move, yLoc is all the way to the top.");
+				return EMPTY_CELL_ARRAY;
+			}
+			startPos = yLoc * width + xLoc;
+			LOG.debug("Start pos: " + startPos);
+			counterCell = cells[startPos - width];
+			if (counterCell.getState() == State.EMPTY) {
+				LOG.debug("bad move, up is empty.");
+				return EMPTY_CELL_ARRAY;
+			}
+			LOG.debug("Counter cell at " + (startPos - width) + " is: " + counterCell.toString());
+			if (yLoc - counterCell.getValue() < 0) {
+				LOG.debug("bad move, yLoc - counter is out of bounds.");
+				return EMPTY_CELL_ARRAY;
+			}
+			cellRow = new Cell[counterCell.getValue()];
+			cellRow[0] = counterCell;
+			LOG.debug(String.format("loop i = %d; i <= %d", startPos - 2 * width,
+					startPos - (counterCell.getValue() + 1) * width));
+			for (int i = startPos - 2 * width; i > startPos - (counterCell.getValue() + 1) * width; i -= width) {
+				LOG.debug("Counter cell " + i + " is: " + cells[i]);
+				if (cells[i].getState() == State.EMPTY) {
+					LOG.debug("bad move, would cross empty cell.");
+					return EMPTY_CELL_ARRAY;
+				}
+				LOG.debug("Storing cell " + i + " to index " + index + " cell: " + cells[i]);
+				cellRow[index] = cells[i];
+				index++;
+			}
+			LOG.debug("Good up move");
 			return cellRow;
 
 		default:
